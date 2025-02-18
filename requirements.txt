@@ -1,6 +1,8 @@
 fastapi
 uvicorn
+pandas
 selenium
 webdriver-manager
-pandas
-jinja2
+Jinja2
+python-multipart
+openpyxl
