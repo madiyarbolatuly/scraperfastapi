@@ -1,11 +1,10 @@
 import os
 import logging
-import asyncio
 import re
 import time
-from fastapi import FastAPI, Request, UploadFile, File, Form
+import asyncio
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -17,7 +16,6 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
 from urllib.parse import urlparse
-from typing import Dict, List
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
@@ -31,7 +29,6 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 # Setup templates
 templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Selenium configuration
 chrome_options = Options()
@@ -139,7 +136,7 @@ def scrape_prices(target_url: str, query: str) -> List[str]:
         driver.get(f"{target_url}{query}")
         product_selector, price_selector = get_selectors(target_url)
         WebDriverWait(driver, 15).until(EC.presence_of_all_elements_located((product_selector[0], product_selector[1])))
-        
+
         products = driver.find_elements(product_selector[0], product_selector[1])
         prices = []
         for product in products[:5]:  # Limit to top 5 results
@@ -147,6 +144,7 @@ def scrape_prices(target_url: str, query: str) -> List[str]:
                 price_element = product.find_element(price_selector[0], price_selector[1])
                 prices.append(clean_price(price_element.text))
             except NoSuchElementException:
+                logging.warning(f"Price not found for product: {product.text}")
                 continue
         return prices
     finally:
