@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    shm_size: '2gb'
+    environment:
+      - PYTHONUNBUFFERED=1
