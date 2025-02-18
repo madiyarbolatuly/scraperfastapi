@@ -1,9 +1,10 @@
-# Используем базовый образ Python
 FROM python:3.9-slim
 
-# Устанавливаем системные зависимости
-RUN apt-get update && apt-get install -y \
+# Установка системных зависимостей
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
+    unzip \
     gnupg \
     fonts-liberation \
     libasound2 \
@@ -28,37 +29,34 @@ RUN apt-get update && apt-get install -y \
     libxfixes3 \
     libxrandr2 \
     xdg-utils \
-    --no-install-recommends
+    apt-utils \
+    && echo 'exit 0' > /usr/sbin/policy-rc.d
 
-# Устанавливаем Chrome
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
-
-# Устанавливаем ChromeDriver
-RUN CHROME_VERSION=$(google-chrome --version | cut -d ' ' -f3 | cut -d '.' -f1) \
+# Установка Chrome и ChromeDriver
+RUN wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+    && apt-get install -y --no-install-recommends /tmp/chrome.deb \
+    && rm /tmp/chrome.deb \
+    && CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f1) \
     && CHROMEDRIVER_VERSION=$(wget -qO- https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}) \
     && wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip \
     && unzip /tmp/chromedriver.zip -d /usr/bin/ \
     && chmod +x /usr/bin/chromedriver \
     && rm /tmp/chromedriver.zip
 
-# Настраиваем рабочую директорию
+# Настройка рабочей директории
 WORKDIR /app
 
-# Копируем зависимости
+# Копирование зависимостей
 COPY requirements.txt .
 
-# Устанавливаем Python зависимости
+# Установка Python зависимостей
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем исходный код
+# Копирование исходного кода
 COPY . .
 
-# Создаем директории для файлов
+# Создание директорий для файлов
 RUN mkdir -p /app/uploads /app/outputs
 
-# Запускаем приложение
+# Запуск приложения
 CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "main:app"]
