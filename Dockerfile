@@ -19,10 +19,9 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+COPY . /app
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
 # Copy application files
 COPY . .
