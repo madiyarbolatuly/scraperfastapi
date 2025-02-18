@@ -23,9 +23,6 @@ COPY . /app
 
 RUN pip install -r requirements.txt
 
-# Copy application files
-COPY . .
-
 # Create directories and set permissions
 RUN mkdir -p uploads outputs && \
     useradd -m appuser && \
