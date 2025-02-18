@@ -1,62 +1,46 @@
+# Step 1: Use the official Python image
 FROM python:3.9-slim
 
-# Установка системных зависимостей
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    unzip \
-    gnupg \
-    fonts-liberation \
-    libasound2 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libatspi2.0-0 \
-    libcairo2 \
-    libcups2 \
-    libdbus-1-3 \
-    libdrm2 \
-    libgbm1 \
-    libglib2.0-0 \
-    libgtk-3-0 \
-    libnspr4 \
-    libnss3 \
-    libpango-1.0-0 \
-    libx11-6 \
-    libxcb1 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxrandr2 \
-    xdg-utils \
-    apt-utils \
-    && echo 'exit 0' > /usr/sbin/policy-rc.d
+# Step 2: Set up environment variables for the application
+ENV PYTHONUNBUFFERED 1
 
-# Установка Chrome и ChromeDriver
-RUN wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt-get install -y --no-install-recommends /tmp/chrome.deb \
-    && rm /tmp/chrome.deb \
-    && CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d '.' -f1) \
-    && CHROMEDRIVER_VERSION=$(wget -qO- https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}) \
-    && wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip \
-    && unzip /tmp/chromedriver.zip -d /usr/bin/ \
-    && chmod +x /usr/bin/chromedriver \
+# Step 3: Install system dependencies for Selenium (including Chrome and ChromeDriver)
+RUN apt-get update \
+    && apt-get install -y \
+    wget \
+    curl \
+    unzip \
+    libnss3 \
+    libgdk-pixbuf2.0-0 \
+    libxss1 \
+    libappindicator3-1 \
+    libasound2 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Google Chrome
+RUN curl -sS https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o google-chrome-stable_current_amd64.deb \
+    && dpkg -i google-chrome-stable_current_amd64.deb \
+    && apt-get -fy install \
+    && rm google-chrome-stable_current_amd64.deb
+
+# Install ChromeDriver (latest version for Chrome 91)
+RUN wget -q -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/91.0.4472.124/chromedriver_linux64.zip \
+    && unzip /tmp/chromedriver.zip -d /usr/local/bin/ \
     && rm /tmp/chromedriver.zip
 
-# Настройка рабочей директории
+# Step 4: Set the working directory inside the container
 WORKDIR /app
 
-# Копирование зависимостей
+# Step 5: Install Python dependencies
 COPY requirements.txt .
-
-# Установка Python зависимостей
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копирование исходного кода
-COPY . .
+# Step 6: Copy the application files into the container
+COPY . /app
 
-# Создание директорий для файлов
-RUN mkdir -p /app/uploads /app/outputs
+# Step 7: Expose port 8080 for FastAPI
+EXPOSE 8080
 
-# Запуск приложения
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "main:app"]
+# Step 8: Command to run the app
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
