@@ -1,34 +1,37 @@
 FROM python:3.9-slim
 
+WORKDIR /app
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
-    xvfb \
     libnss3 \
     libgconf-2-4 \
     libfontconfig1 \
     fonts-liberation \
-    --no-install-recommends
-
-# Install Chrome
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable --no-install-recommends \
+    gtk2-engines-pixbuf \
+    xfonts-cyrillic \
+    xfonts-100dpi \
+    xfonts-75dpi \
+    xfonts-base \
+    xfonts-scalable \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-COPY . /app
+# Install Chrome
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
+    && echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -r requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Create directories and set permissions
-RUN mkdir -p uploads outputs && \
-    useradd -m appuser && \
-    chown -R appuser:appuser /app
+COPY . .
 
-USER appuser
+ENV CHROME_BIN=/usr/bin/google-chrome-stable
+ENV CHROMEDRIVER_PATH=/usr/bin/chromedriver
 
 EXPOSE 8080
 
